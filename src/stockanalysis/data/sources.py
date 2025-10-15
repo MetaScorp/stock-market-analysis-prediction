@@ -89,6 +89,7 @@ class CSVSource(DataSource):
         df = pd.read_csv(path, parse_dates=["Date"], index_col="Date")
         df.index.name = None
         df = df.loc[start:end]
+        df.index.freq = pd.infer_freq(df.index)  # lost on the CSV round-trip
         return self._validate(df, ticker)
 
 
