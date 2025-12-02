@@ -11,8 +11,9 @@ with time series and a random train_test_split).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Protocol
+from typing import Protocol
 
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ from sklearn.model_selection import TimeSeriesSplit
 
 
 class Model(Protocol):
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "Model": ...
+    def fit(self, X: np.ndarray, y: np.ndarray) -> Model: ...
     def predict(self, X: np.ndarray) -> np.ndarray: ...
 
 
@@ -55,7 +56,7 @@ def train_test_split_ts(
 class BaselinePersistenceModel:
     """Predict tomorrow == today (lag_1). Anything fancier should beat this."""
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "BaselinePersistenceModel":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> BaselinePersistenceModel:
         return self
 
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -71,7 +72,7 @@ class LinearReturnModel:
 
         self._model = LinearRegression()
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearReturnModel":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> LinearReturnModel:
         self._model.fit(X, y)
         return self
 

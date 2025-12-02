@@ -44,7 +44,7 @@ class DataSource(abc.ABC):
                 f"Got: {list(df.columns)}"
             )
         if not isinstance(df.index, pd.DatetimeIndex):
-            raise ValueError(f"Data for {ticker!r} must have a DatetimeIndex.")
+            raise TypeError(f"Data for {ticker!r} must have a DatetimeIndex.")
         return df.sort_index()
 
 

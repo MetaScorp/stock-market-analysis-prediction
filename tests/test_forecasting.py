@@ -22,7 +22,7 @@ def test_build_lagged_features_shapes_and_alignment():
 def test_train_test_split_ts_preserves_chronological_order():
     X = pd.DataFrame({"a": range(10)})
     y = pd.Series(range(10))
-    X_train, X_test, y_train, y_test = train_test_split_ts(X, y, test_size=0.3)
+    X_train, X_test, _, _ = train_test_split_ts(X, y, test_size=0.3)
     assert list(X_train.index) == list(range(7))
     assert list(X_test.index) == list(range(7, 10))
     assert X_train.index.max() < X_test.index.min()

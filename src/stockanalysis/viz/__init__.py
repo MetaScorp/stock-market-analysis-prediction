@@ -7,9 +7,9 @@ from .plots import (
 )
 
 __all__ = [
-    "plot_price_with_bands",
-    "plot_returns_distribution",
     "plot_correlation_heatmap",
     "plot_equity_curve",
+    "plot_price_with_bands",
+    "plot_returns_distribution",
     "plot_var_distribution",
 ]

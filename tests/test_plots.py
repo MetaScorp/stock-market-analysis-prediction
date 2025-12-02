@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 
 from stockanalysis.indicators import bollinger_bands
 from stockanalysis.risk import monte_carlo_var
