@@ -14,6 +14,14 @@ from dataclasses import dataclass
 import pandas as pd
 
 from stockanalysis.indicators.technical import sma
+from stockanalysis.stats.performance import (
+    calmar_ratio,
+    drawdown_series,
+    max_drawdown_duration,
+    profit_factor,
+    sortino_ratio,
+    win_rate,
+)
 from stockanalysis.stats.returns import (
     annualized_return,
     annualized_volatility,
@@ -29,7 +37,12 @@ class BacktestResult:
     annualized_return: float
     annualized_volatility: float
     sharpe_ratio: float
+    sortino_ratio: float
+    calmar_ratio: float
     max_drawdown: float
+    max_drawdown_duration: int
+    win_rate: float
+    profit_factor: float
 
     def summary(self) -> str:
         return (
@@ -37,7 +50,12 @@ class BacktestResult:
             f"Annualized return: {self.annualized_return:.2%} | "
             f"Annualized vol: {self.annualized_volatility:.2%} | "
             f"Sharpe: {self.sharpe_ratio:.2f} | "
-            f"Max drawdown: {self.max_drawdown:.2%}"
+            f"Sortino: {self.sortino_ratio:.2f} | "
+            f"Calmar: {self.calmar_ratio:.2f} | "
+            f"Max drawdown: {self.max_drawdown:.2%} "
+            f"({self.max_drawdown_duration} bars) | "
+            f"Win rate: {self.win_rate:.1%} | "
+            f"Profit factor: {self.profit_factor:.2f}"
         )
 
 
@@ -49,12 +67,6 @@ def sma_crossover_signal(
     slow_sma = sma(prices, window=slow)
     signal = (fast_sma > slow_sma).astype(int)
     return signal.rename("signal")
-
-
-def _max_drawdown(equity_curve: pd.Series) -> float:
-    running_max = equity_curve.cummax()
-    drawdown = equity_curve / running_max - 1
-    return float(drawdown.min())
 
 
 def run_backtest(
@@ -87,7 +99,12 @@ def run_backtest(
         annualized_return=annualized_return(strategy_returns, periods_per_year),
         annualized_volatility=annualized_volatility(strategy_returns, periods_per_year),
         sharpe_ratio=sharpe_ratio(strategy_returns, periods_per_year=periods_per_year),
-        max_drawdown=_max_drawdown(equity_curve),
+        sortino_ratio=sortino_ratio(strategy_returns, periods_per_year=periods_per_year),
+        calmar_ratio=calmar_ratio(strategy_returns, equity_curve, periods_per_year),
+        max_drawdown=float(drawdown_series(equity_curve).min()),
+        max_drawdown_duration=max_drawdown_duration(equity_curve),
+        win_rate=win_rate(strategy_returns),
+        profit_factor=profit_factor(strategy_returns),
     )
 
 
