@@ -2,7 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from stockanalysis.portfolio import beta, relative_strength, rolling_beta, rolling_correlation
+from stockanalysis.portfolio import (
+    beta,
+    relative_strength,
+    rolling_beta,
+    rolling_correlation,
+)
 
 
 def _dates(n):
