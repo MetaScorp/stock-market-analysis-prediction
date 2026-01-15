@@ -93,6 +93,44 @@ class CSVSource(DataSource):
         return self._validate(df, ticker)
 
 
+class CachedYFinanceSource(DataSource):
+    """Wraps another DataSource (YFinanceSource by default) and writes each
+    fetch to a local CSV, reading from that cache on later calls so
+    re-running an analysis doesn't re-hit the network."""
+
+    def __init__(
+        self,
+        directory: str | Path,
+        live_source: DataSource | None = None,
+        refresh: bool = False,
+    ) -> None:
+        self.directory = Path(directory)
+        self.directory.mkdir(parents=True, exist_ok=True)
+        self.refresh = refresh
+        self._live = live_source if live_source is not None else YFinanceSource()
+        self._cache = CSVSource(self.directory)
+
+    def fetch(self, ticker: str, start: str, end: str | None = None) -> pd.DataFrame:
+        cache_path = self.directory / f"{ticker}.csv"
+        if cache_path.exists() and not self.refresh and self._cache_covers(
+            cache_path, start, end
+        ):
+            return self._cache.fetch(ticker, start, end)
+        df = self._live.fetch(ticker, start, end)
+        df.to_csv(cache_path, index_label="Date")
+        return df
+
+    @staticmethod
+    def _cache_covers(cache_path: Path, start: str, end: str | None) -> bool:
+        """Cheap check that the cached file's date range covers the request,
+        so we don't silently hand back a partial slice from a narrower fetch."""
+        dates = pd.read_csv(cache_path, usecols=["Date"], parse_dates=["Date"])["Date"]
+        if dates.empty:
+            return False
+        requested_end = pd.Timestamp(end) if end else pd.Timestamp.today()
+        return dates.min() <= pd.Timestamp(start) and dates.max() >= requested_end - pd.Timedelta(days=5)
+
+
 class SyntheticSource(DataSource):
     """Seeded synthetic OHLCV (geometric Brownian motion), no network needed.
 

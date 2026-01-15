@@ -1,3 +1,15 @@
-from .sources import CSVSource, DataSource, SyntheticSource, YFinanceSource
+from .sources import (
+    CachedYFinanceSource,
+    CSVSource,
+    DataSource,
+    SyntheticSource,
+    YFinanceSource,
+)
 
-__all__ = ["CSVSource", "DataSource", "SyntheticSource", "YFinanceSource"]
+__all__ = [
+    "CSVSource",
+    "CachedYFinanceSource",
+    "DataSource",
+    "SyntheticSource",
+    "YFinanceSource",
+]
