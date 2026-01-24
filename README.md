@@ -11,15 +11,21 @@ for years. Everything else in this repo is the rewrite.
 
 ## What's here
 
-- **Data** - pluggable sources: `yfinance` for live data, cached CSVs, or
+- **Data** - pluggable sources: `yfinance` for live data (with a local CSV
+  cache so you're not re-hitting the network every run), cached CSVs, or
   seeded synthetic data for offline/reproducible work
-- **Indicators** - SMA, EMA, RSI, MACD, Bollinger Bands
-- **Stats** - returns, annualized return/vol, Sharpe ratio, correlation
+- **Indicators** - SMA, EMA, RSI, MACD, Bollinger Bands, OBV, VWAP, ATR,
+  Stochastic Oscillator
+- **Stats** - returns, annualized return/vol, Sharpe/Sortino/Calmar ratios,
+  drawdown series & duration, win rate, profit factor, correlation
+- **Portfolio** - rolling correlation, rolling & static beta vs. a benchmark,
+  relative strength
 - **Risk** - historical VaR, parametric VaR, and a seeded Monte Carlo VaR/CVaR
 - **Modeling** - lagged features, walk-forward validation, a naive baseline
   vs. a linear model
 - **Backtesting** - long/flat backtests with a one-day execution lag and
-  optional transaction costs, always compared against buy-and-hold
+  optional transaction costs, reporting Sharpe/Sortino/Calmar/drawdown/win
+  rate/profit factor, always compared against buy-and-hold
 - **Viz** - matplotlib plots that return `Figure` objects instead of calling
   `plt.show()`, so they're actually testable
 - Tests for all of the above, fully offline (no network calls), running in
@@ -59,6 +65,7 @@ There are also a few runnable scripts in `examples/`:
 python examples/01_quickstart.py               # data + indicators + stats
 python examples/02_risk_analysis.py             # VaR/CVaR, three methods
 python examples/03_modeling_and_backtest.py     # forecasting + backtest
+python examples/04_multi_ticker_screener.py     # rank a list of tickers
 ```
 
 All three run offline against synthetic data by default. Pass
