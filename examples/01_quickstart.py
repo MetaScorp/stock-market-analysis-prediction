@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 
 from stockanalysis.data import SyntheticSource, YFinanceSource
-from stockanalysis.indicators import bollinger_bands, macd, rsi, sma
+from stockanalysis.indicators import bollinger_bands, macd, rsi
 from stockanalysis.stats import (
     annualized_return,
     annualized_volatility,
@@ -48,7 +48,7 @@ def main() -> None:
     print(f"Loaded {len(close)} rows for {ticker} ({close.index[0].date()} .. {close.index[-1].date()})")
 
     returns = daily_returns(close)
-    print(f"\nReturn statistics:")
+    print("\nReturn statistics:")
     print(f"  Annualized return:     {annualized_return(returns):.2%}")
     print(f"  Annualized volatility: {annualized_volatility(returns):.2%}")
     print(f"  Sharpe ratio:          {sharpe_ratio(returns):.2f}")
