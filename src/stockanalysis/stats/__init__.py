@@ -1,3 +1,4 @@
+from .diagnostics import TestResult, adf_test, jarque_bera_test, ljung_box_test
 from .performance import (
     calmar_ratio,
     drawdown_series,
@@ -16,6 +17,8 @@ from .returns import (
 )
 
 __all__ = [
+    "TestResult",
+    "adf_test",
     "annualized_return",
     "annualized_volatility",
     "calmar_ratio",
@@ -23,6 +26,8 @@ __all__ = [
     "cumulative_returns",
     "daily_returns",
     "drawdown_series",
+    "jarque_bera_test",
+    "ljung_box_test",
     "max_drawdown_duration",
     "profit_factor",
     "sharpe_ratio",
