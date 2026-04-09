@@ -69,6 +69,28 @@ def sma_crossover_signal(
     return signal.rename("signal")
 
 
+def volatility_target_weights(
+    signal: pd.Series,
+    returns: pd.Series,
+    target_annual_vol: float = 0.15,
+    window: int = 20,
+    max_leverage: float = 2.0,
+    periods_per_year: int = 252,
+) -> pd.Series:
+    """Scale a directional signal by target_vol / realized_vol, so the
+    position gets smaller when the market is choppy and bigger when it's
+    calm, instead of always betting the same size regardless of conditions.
+    Capped at max_leverage so a quiet-market lull right before a spike
+    doesn't blow through a sane position limit."""
+    realized_vol = (
+        returns.rolling(window=window, min_periods=window).std()
+        * (periods_per_year**0.5)
+    )
+    scale = (target_annual_vol / realized_vol).clip(upper=max_leverage)
+    weights = (signal * scale).reindex(signal.index).fillna(0)
+    return weights.rename("weight")
+
+
 def run_backtest(
     prices: pd.Series,
     signal: pd.Series,
