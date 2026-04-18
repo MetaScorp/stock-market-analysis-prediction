@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 
 from stockanalysis.models import (
+    ARIMAReturnModel,
     BaselinePersistenceModel,
+    GradientBoostingReturnModel,
     LinearReturnModel,
     build_lagged_features,
     train_test_split_ts,
@@ -56,3 +58,37 @@ def test_walk_forward_validate_runs_without_lookahead(close):
         assert fold.rmse >= 0
         assert fold.mae >= 0
         assert fold.n_train > 0 and fold.n_test > 0
+
+
+def test_gradient_boosting_model_fits_a_nonlinear_relationship():
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(300, 1))
+    y = X[:, 0] ** 2  # a linear model has no hope of fitting this well
+    model = GradientBoostingReturnModel(n_estimators=50).fit(X, y)
+    preds = model.predict(X)
+    assert np.corrcoef(preds, y)[0, 1] > 0.9
+
+
+def test_arima_model_predicts_requested_number_of_steps(close):
+    from stockanalysis.stats import daily_returns
+
+    returns = daily_returns(close)
+    X, y = build_lagged_features(returns, lags=5)
+    X_train, X_test, y_train, _ = train_test_split_ts(X, y, test_size=0.1)
+    model = ARIMAReturnModel(order=(1, 0, 0)).fit(X_train.to_numpy(), y_train.to_numpy())
+    preds = model.predict(X_test.to_numpy())
+    assert len(preds) == len(X_test)
+    assert np.all(np.isfinite(preds))
+
+
+def test_arima_model_runs_in_walk_forward_validation(close):
+    from stockanalysis.stats import daily_returns
+
+    returns = daily_returns(close)
+    X, y = build_lagged_features(returns, lags=5)
+    results = walk_forward_validate(
+        lambda: ARIMAReturnModel(order=(1, 0, 0)), X, y, n_splits=3
+    )
+    assert len(results) == 3
+    for fold in results:
+        assert fold.rmse >= 0
