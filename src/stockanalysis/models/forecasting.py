@@ -80,6 +80,50 @@ class LinearReturnModel:
         return self._model.predict(X)
 
 
+class GradientBoostingReturnModel:
+    """sklearn's gradient boosted trees. Captures non-linear interactions
+    between lags that a plain linear model can't - at the cost of being
+    much easier to overfit with only a handful of lag features, so keep
+    an eye on whether it's actually beating the linear model out of
+    sample, not just fitting the training folds better."""
+
+    def __init__(self, n_estimators: int = 100, max_depth: int = 3) -> None:
+        from sklearn.ensemble import GradientBoostingRegressor
+
+        self._model = GradientBoostingRegressor(
+            n_estimators=n_estimators, max_depth=max_depth, random_state=42
+        )
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> GradientBoostingReturnModel:
+        self._model.fit(X, y)
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return self._model.predict(X)
+
+
+class ARIMAReturnModel:
+    """ARIMA(p, d, q) fit on the return series itself, ignoring the lagged
+    feature matrix (ARIMA already models its own lag structure). Kept
+    behind the same fit(X, y)/predict(X) interface as the others so it
+    slots into walk_forward_validate unchanged - X is only used for its
+    length, to know how many steps ahead to forecast."""
+
+    def __init__(self, order: tuple[int, int, int] = (1, 0, 0)) -> None:
+        self.order = order
+        self._fitted = None
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> ARIMAReturnModel:
+        from statsmodels.tsa.arima.model import ARIMA
+
+        self._fitted = ARIMA(y, order=self.order).fit()
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        steps = len(X)
+        return np.asarray(self._fitted.forecast(steps=steps))
+
+
 @dataclass
 class FoldResult:
     fold: int

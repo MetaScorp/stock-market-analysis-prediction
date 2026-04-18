@@ -1,5 +1,7 @@
 from .forecasting import (
+    ARIMAReturnModel,
     BaselinePersistenceModel,
+    GradientBoostingReturnModel,
     LinearReturnModel,
     build_lagged_features,
     train_test_split_ts,
@@ -7,7 +9,9 @@ from .forecasting import (
 )
 
 __all__ = [
+    "ARIMAReturnModel",
     "BaselinePersistenceModel",
+    "GradientBoostingReturnModel",
     "LinearReturnModel",
     "build_lagged_features",
     "train_test_split_ts",
