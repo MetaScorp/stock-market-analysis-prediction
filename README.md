@@ -18,14 +18,23 @@ for years. Everything else in this repo is the rewrite.
   Stochastic Oscillator
 - **Stats** - returns, annualized return/vol, Sharpe/Sortino/Calmar ratios,
   drawdown series & duration, win rate, profit factor, correlation
+- **Diagnostics** - stationarity (ADF), autocorrelation (Ljung-Box), and
+  normality (Jarque-Bera) tests, so model/VaR assumptions get checked
+  instead of assumed
 - **Portfolio** - rolling correlation, rolling & static beta vs. a benchmark,
   relative strength
-- **Risk** - historical VaR, parametric VaR, and a seeded Monte Carlo VaR/CVaR
-- **Modeling** - lagged features, walk-forward validation, a naive baseline
-  vs. a linear model
-- **Backtesting** - long/flat backtests with a one-day execution lag and
-  optional transaction costs, reporting Sharpe/Sortino/Calmar/drawdown/win
-  rate/profit factor, always compared against buy-and-hold
+- **Risk** - historical VaR, parametric VaR, seeded Monte Carlo VaR/CVaR, and
+  GARCH(1,1)-based volatility forecasting + VaR for when volatility is
+  clearly clustering rather than roughly constant
+- **Regime** - rolling volatility regime classification (low/medium/high,
+  based on the series' own history)
+- **Modeling** - lagged features, walk-forward validation, and four models
+  to compare: naive persistence baseline, linear regression, gradient
+  boosted trees, and ARIMA
+- **Backtesting** - long/flat or volatility-targeted position sizing, a
+  one-day execution lag, optional transaction costs, and a full metrics set
+  (Sharpe/Sortino/Calmar/drawdown/win rate/profit factor), always compared
+  against buy-and-hold
 - **Viz** - matplotlib plots that return `Figure` objects instead of calling
   `plt.show()`, so they're actually testable
 - Tests for all of the above, fully offline (no network calls), running in
