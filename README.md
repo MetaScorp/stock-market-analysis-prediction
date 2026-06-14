@@ -1,13 +1,15 @@
 # Stock Market Analysis and Prediction
 
-A toolkit for stock market analysis - data access, technical indicators,
-stats, risk (VaR), a bit of predictive modeling, and backtesting.
+A toolkit for stock market analysis - data access, technical and volume
+indicators, statistics, risk (VaR/GARCH), regime detection, predictive
+modeling, backtesting, and significance testing.
 
 This is a rewrite of an old project of mine from 2016 (dug up again for a
 college assignment in 2021, then left alone until now). The old code is
 still in `legacy/`, untouched, but it doesn't run anymore - it depended on
 Google Finance through `pandas_datareader`, and that backend has been dead
-for years. Everything else in this repo is the rewrite.
+for years. Everything else in this repo is the rewrite, built up in stages
+as I had time for it.
 
 ## What's here
 
@@ -26,8 +28,9 @@ for years. Everything else in this repo is the rewrite.
 - **Risk** - historical VaR, parametric VaR, seeded Monte Carlo VaR/CVaR, and
   GARCH(1,1)-based volatility forecasting + VaR for when volatility is
   clearly clustering rather than roughly constant
-- **Regime** - rolling volatility regime classification (low/medium/high,
-  based on the series' own history)
+- **Regime** - rolling volatility regime classification (low/medium/high),
+  plus a Markov regime-switching model that estimates regimes and their
+  transition probabilities directly from the data
 - **Modeling** - lagged features, walk-forward validation, and four models
   to compare: naive persistence baseline, linear regression, gradient
   boosted trees, and ARIMA
@@ -35,6 +38,9 @@ for years. Everything else in this repo is the rewrite.
   one-day execution lag, optional transaction costs, and a full metrics set
   (Sharpe/Sortino/Calmar/drawdown/win rate/profit factor), always compared
   against buy-and-hold
+- **Evaluation** - bootstrap confidence intervals on Sharpe ratio and a
+  permutation test that checks whether a signal's backtest result is
+  actually distinguishable from randomly picking the same number of days
 - **Viz** - matplotlib plots that return `Figure` objects instead of calling
   `plt.show()`, so they're actually testable
 - Tests for all of the above, fully offline (no network calls), running in
@@ -47,8 +53,9 @@ Needs Python 3.10+.
 ```bash
 git clone <this-repo-url>
 cd stock-analysis-platform
-pip install -e ".[dev]"     # core + test/lint tools
-pip install -e ".[live]"    # optional, adds yfinance for real data
+pip install -e ".[dev]"         # core + test/lint tools
+pip install -e ".[live]"        # optional, adds yfinance for real data
+pip install -e ".[research]"    # optional, adds statsmodels + arch (GARCH, ADF, Markov switching, ARIMA)
 ```
 
 ## Quickstart
@@ -75,11 +82,14 @@ python examples/01_quickstart.py               # data + indicators + stats
 python examples/02_risk_analysis.py             # VaR/CVaR, three methods
 python examples/03_modeling_and_backtest.py     # forecasting + backtest
 python examples/04_multi_ticker_screener.py     # rank a list of tickers
+python examples/05_volatility_and_regimes.py    # diagnostics, GARCH, regimes, vol targeting
+python examples/06_research_report.py           # full pipeline -> one report, with caveats
 ```
 
-All three run offline against synthetic data by default. Pass
-`--live TICKER` to `01_quickstart.py` to pull real data (needs the `live`
-extra and network access).
+All of them run offline against synthetic data by default. Pass `--live
+TICKER` (or `--live TICKER1 TICKER2 ...` for the screener) to pull real
+data - needs the `live` extra, network access, and `05`/`06` also need the
+`research` extra installed.
 
 ## Layout
 
@@ -87,11 +97,14 @@ extra and network access).
 src/stockanalysis/
 ├── config.py       # default settings, incl. random seed
 ├── data/           # pluggable data sources
-├── indicators/     # technical indicators
-├── stats/          # returns & performance stats
-├── risk/           # VaR / CVaR
+├── indicators/     # technical + volume indicators
+├── stats/          # returns, performance metrics, diagnostics
+├── portfolio.py    # cross-ticker correlation / beta / relative strength
+├── risk/           # VaR / CVaR / GARCH
+├── regime/         # volatility regime classification + Markov switching
 ├── models/         # forecasting + walk-forward validation
-├── backtest/       # backtesting engine
+├── backtest/       # backtesting engine + position sizing
+├── evaluation/     # bootstrap CI + permutation significance testing
 └── viz/            # plotting functions
 
 tests/        # pytest suite, offline
@@ -102,19 +115,32 @@ legacy/       # the original 2016 project, unmodified
 ## Tests
 
 ```bash
-pytest                       # run the suite
-pytest --cov=stockanalysis   # with coverage
-ruff check src tests         # lint
+pytest                              # run the suite
+pytest --cov=stockanalysis          # with coverage
+ruff check src tests                # lint
 ```
 
 Everything runs against a seeded `SyntheticSource`, so there's no network
-dependency and results are the same locally and in CI.
+dependency and results are the same locally and in CI. `pip install -e
+".[dev,research]"` first, or the diagnostics/GARCH/Markov/ARIMA tests will
+fail on import.
 
 ## Reproducibility
 
-Anything involving randomness (synthetic data, Monte Carlo) takes an
-explicit seed and defaults to a fixed one in `config.DEFAULT_SETTINGS`.
+Anything involving randomness (synthetic data, Monte Carlo, bootstrap,
+permutation tests) takes an explicit seed and defaults to a fixed one.
 Same inputs, same seed, same numbers every time.
+
+## On the forecasts
+
+Nothing in here predicts the market. The forecasting models are evaluated
+with walk-forward validation against a naive persistence baseline, and
+`evaluation/` exists specifically to check whether a backtest's edge is
+distinguishable from noise before getting excited about it. A model that
+"beats the baseline" on one historical window, on one ticker, is a
+hypothesis worth testing further - not a result to trade on. Every number
+this project produces is meant to be reproducible and challengeable, not
+taken on faith.
 
 ## Why not pandas_datareader anymore
 
@@ -124,6 +150,20 @@ Google killed off and `pandas_datareader` formally deprecated a while back.
 that's what `YFinanceSource` uses now. It sits behind the same `DataSource`
 interface as everything else, so if it ever meets the same fate, only one
 file needs to change.
+
+## How this was built
+
+Built in four rough passes rather than one shot:
+
+1. Data loading, basic indicators (SMA/EMA/RSI/MACD/Bollinger), return
+   stats, a simple Monte Carlo VaR, one backtest.
+2. Volume indicators, a full performance-metrics set (Sortino/Calmar/
+   drawdown duration/win rate/profit factor), a caching data source,
+   cross-ticker correlation/beta, a multi-ticker screener.
+3. Stationarity/autocorrelation/normality tests, GARCH volatility
+   forecasting, rolling volatility regimes, volatility-targeted position
+   sizing, gradient boosting + ARIMA models.
+4. Markov regime-switching, bootstrap/permutation significance testing.
 
 ## License
 
