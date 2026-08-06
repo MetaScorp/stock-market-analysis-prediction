@@ -52,3 +52,27 @@ def test_summary_reports_convergence():
     returns, _ = _two_regime_returns()
     text = fit_markov_switching(returns).summary()
     assert "Converged: True" in text
+
+
+def test_fit_is_reproducible_with_the_same_seed():
+    returns, _ = _two_regime_returns()
+    result_a = fit_markov_switching(returns, seed=7)
+    result_b = fit_markov_switching(returns, seed=7)
+    np.testing.assert_array_equal(result_a.regime_means, result_b.regime_means)
+    np.testing.assert_array_equal(result_a.transition_matrix, result_b.transition_matrix)
+
+
+def test_does_not_raise_on_a_series_that_fails_to_converge():
+    # this exact series used to raise numpy.linalg.LinAlgError instead of
+    # coming back with converged=False - regression test for that crash
+    from stockanalysis.data import SyntheticSource
+    from stockanalysis.stats import daily_returns
+
+    close = SyntheticSource(seed=1).fetch("X", "2019-01-01", "2026-09-16")["Close"]
+    returns = daily_returns(close)
+
+    result = fit_markov_switching(returns)
+
+    assert result.converged is False
+    assert np.all(np.isnan(result.regime_means))
+    assert len(result.regime) == len(returns)
