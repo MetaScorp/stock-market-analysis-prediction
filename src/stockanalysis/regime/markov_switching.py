@@ -51,18 +51,50 @@ class MarkovRegimeResult:
         return "\n".join(lines)
 
 
-def fit_markov_switching(returns: pd.Series, k_regimes: int = 2) -> MarkovRegimeResult:
+def _empty_result(returns: pd.Series, k_regimes: int) -> MarkovRegimeResult:
+    """Placeholder returned when the optimizer fails outright (not just
+    fails to converge cleanly - an actual numerical error). converged=False
+    either way, so callers checking that flag are safe regardless."""
+    nan_regime = pd.Series(np.nan, index=returns.index, name="regime")
+    nan_probs = pd.DataFrame(
+        np.nan, index=returns.index, columns=[f"P(regime {i})" for i in range(k_regimes)]
+    )
+    return MarkovRegimeResult(
+        regime=nan_regime,
+        regime_probabilities=nan_probs,
+        regime_means=np.full(k_regimes, np.nan),
+        regime_std=np.full(k_regimes, np.nan),
+        transition_matrix=np.full((k_regimes, k_regimes), np.nan),
+        converged=False,
+    )
+
+
+def fit_markov_switching(
+    returns: pd.Series, k_regimes: int = 2, seed: int = 42
+) -> MarkovRegimeResult:
     """Fit a k-regime Markov-switching model with regime-specific mean and
     variance on a return series. Two regimes (calm/turbulent) is the
     standard starting point; more regimes need more data to identify
-    reliably."""
+    reliably.
+
+    The random search over starting parameters (search_reps) is seeded -
+    without that, `fit()` uses the global numpy RNG and this function
+    would return slightly different regimes on every call. The optimizer
+    can still fail outright on some series (a genuine numerical issue with
+    this kind of MLE, not something specific to this code) - that case
+    comes back as converged=False with NaN fields instead of a crash, same
+    as a normal non-convergence."""
     from statsmodels.tsa.regime_switching.markov_regression import MarkovRegression
 
     returns = returns.dropna()
     model = MarkovRegression(
         returns, k_regimes=k_regimes, trend="c", switching_variance=True
     )
-    fitted = model.fit(search_reps=20)
+    rng = np.random.default_rng(seed)
+    try:
+        fitted = model.fit(search_reps=20, rng=rng)
+    except (np.linalg.LinAlgError, ValueError):
+        return _empty_result(returns, k_regimes)
 
     probs = fitted.smoothed_marginal_probabilities
     probs.columns = [f"P(regime {i})" for i in range(k_regimes)]
