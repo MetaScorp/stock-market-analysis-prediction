@@ -17,7 +17,7 @@ from stockanalysis.backtest import (
     sma_crossover_signal,
     volatility_target_weights,
 )
-from stockanalysis.data import CachedYFinanceSource, SyntheticSource
+from stockanalysis.data import CachedYFinanceSource, SyntheticSource, check_data_quality
 from stockanalysis.evaluation import bootstrap_sharpe_ci, permutation_test_signal
 from stockanalysis.regime import (
     classify_volatility_regime,
@@ -66,6 +66,11 @@ def main() -> None:
         "forecast of future returns and none of the numbers below should be "
         "read as investment advice."
     )
+
+    quality = check_data_quality(ohlcv)
+    print(f"\nData quality: {quality.summary()}")
+    if not quality.is_clean:
+        print("Proceeding anyway, but treat the numbers below with that in mind.")
 
     section("1. Return statistics")
     print(f"Annualized return:     {annualized_return(returns):.2%}")
