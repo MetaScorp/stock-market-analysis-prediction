@@ -1,3 +1,4 @@
+from .model_comparison import ModelComparisonResult, compare_models
 from .significance import (
     BootstrapResult,
     PermutationResult,
@@ -7,7 +8,9 @@ from .significance import (
 
 __all__ = [
     "BootstrapResult",
+    "ModelComparisonResult",
     "PermutationResult",
     "bootstrap_sharpe_ci",
+    "compare_models",
     "permutation_test_signal",
 ]
