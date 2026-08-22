@@ -17,7 +17,7 @@ from typing import Protocol
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import TimeSeriesSplit
 
 
@@ -131,6 +131,7 @@ class FoldResult:
     n_test: int
     rmse: float
     mae: float
+    squared_errors: np.ndarray  # per-test-point (pred - actual)**2, for paired comparisons
 
 
 def walk_forward_validate(
@@ -148,11 +149,13 @@ def walk_forward_validate(
         model = model_factory()
         model.fit(X_arr[train_idx], y_arr[train_idx])
         preds = model.predict(X_arr[test_idx])
-        rmse = float(np.sqrt(mean_squared_error(y_arr[test_idx], preds)))
+        squared_errors = (preds - y_arr[test_idx]) ** 2
+        rmse = float(np.sqrt(squared_errors.mean()))
         mae = float(mean_absolute_error(y_arr[test_idx], preds))
         results.append(
             FoldResult(
-                fold=i, n_train=len(train_idx), n_test=len(test_idx), rmse=rmse, mae=mae
+                fold=i, n_train=len(train_idx), n_test=len(test_idx), rmse=rmse, mae=mae,
+                squared_errors=squared_errors,
             )
         )
     return results
