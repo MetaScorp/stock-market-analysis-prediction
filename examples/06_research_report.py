@@ -18,7 +18,17 @@ from stockanalysis.backtest import (
     volatility_target_weights,
 )
 from stockanalysis.data import CachedYFinanceSource, SyntheticSource, check_data_quality
-from stockanalysis.evaluation import bootstrap_sharpe_ci, permutation_test_signal
+from stockanalysis.evaluation import (
+    bootstrap_sharpe_ci,
+    compare_models,
+    permutation_test_signal,
+)
+from stockanalysis.models import (
+    BaselinePersistenceModel,
+    LinearReturnModel,
+    build_lagged_features,
+    walk_forward_validate,
+)
 from stockanalysis.regime import (
     classify_volatility_regime,
     fit_markov_switching,
@@ -129,6 +139,18 @@ def main() -> None:
         "regardless of how good the headline return looks."
     )
 
+    section("7. Does a linear model beat naive persistence, out of sample?")
+    X, y = build_lagged_features(returns, lags=5)
+    baseline_folds = walk_forward_validate(BaselinePersistenceModel, X, y, n_splits=5)
+    linear_folds = walk_forward_validate(LinearReturnModel, X, y, n_splits=5)
+    comparison = compare_models(baseline_folds, linear_folds)
+    print(f"  {comparison.summary()}")
+    print(
+        "  This compares squared forecast errors on the same walk-forward "
+        "test points, paired, not just two RMSE numbers side by side - the "
+        "CI is what tells you whether the gap is real or could be luck."
+    )
+
     section("Assumptions and limitations")
     print(
         "- One ticker, one signal, one cost assumption (5 bps/trade). None\n"
@@ -140,9 +162,10 @@ def main() -> None:
         "- GARCH and Markov-switching models assume the return-generating\n"
         "  process is roughly stable; both can be misleading after a\n"
         "  genuine structural break.\n"
-        "- Statistical significance (section 6) is not economic\n"
-        "  significance - a p-value under 0.05 does not imply the strategy\n"
-        "  is profitable after realistic costs and slippage."
+        "- Statistical significance (sections 6-7) is not economic\n"
+        "  significance - a low p-value or a CI that excludes zero doesn't\n"
+        "  imply the strategy or model is profitable after realistic costs\n"
+        "  and slippage."
     )
 
 
