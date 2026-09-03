@@ -15,7 +15,9 @@ as I had time for it.
 
 - **Data** - pluggable sources: `yfinance` for live data (with a local CSV
   cache so you're not re-hitting the network every run), cached CSVs, or
-  seeded synthetic data for offline/reproducible work
+  seeded synthetic data for offline/reproducible work; a data-quality
+  checker that flags gaps, stale prices, zero volume, inverted OHLC ranges,
+  and outsized single-day moves
 - **Indicators** - SMA, EMA, RSI, MACD, Bollinger Bands, OBV, VWAP, ATR,
   Stochastic Oscillator
 - **Stats** - returns, annualized return/vol, Sharpe/Sortino/Calmar ratios,
@@ -38,9 +40,10 @@ as I had time for it.
   one-day execution lag, optional transaction costs, and a full metrics set
   (Sharpe/Sortino/Calmar/drawdown/win rate/profit factor), always compared
   against buy-and-hold
-- **Evaluation** - bootstrap confidence intervals on Sharpe ratio and a
-  permutation test that checks whether a signal's backtest result is
-  actually distinguishable from randomly picking the same number of days
+- **Evaluation** - bootstrap confidence intervals on Sharpe ratio, a
+  permutation test for whether a signal's backtest result beats randomly
+  picking the same number of days, and a paired test for comparing two
+  forecasting models properly instead of eyeballing two RMSE numbers
 - **Viz** - matplotlib plots that return `Figure` objects instead of calling
   `plt.show()`, so they're actually testable
 - Tests for all of the above, fully offline (no network calls), running in

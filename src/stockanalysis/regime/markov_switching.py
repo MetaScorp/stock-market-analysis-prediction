@@ -16,6 +16,7 @@ output.
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -87,12 +88,16 @@ def fit_markov_switching(
     from statsmodels.tsa.regime_switching.markov_regression import MarkovRegression
 
     returns = returns.dropna()
-    model = MarkovRegression(
-        returns, k_regimes=k_regimes, trend="c", switching_variance=True
-    )
     rng = np.random.default_rng(seed)
     try:
-        fitted = model.fit(search_reps=20, rng=rng)
+        with warnings.catch_warnings():
+            # index has holiday gaps so has no fixed freq - benign, we
+            # never call .forecast() so it doesn't matter here
+            warnings.filterwarnings("ignore", category=UserWarning, module="statsmodels")
+            model = MarkovRegression(
+                returns, k_regimes=k_regimes, trend="c", switching_variance=True
+            )
+            fitted = model.fit(search_reps=20, rng=rng)
     except (np.linalg.LinAlgError, ValueError):
         return _empty_result(returns, k_regimes)
 
