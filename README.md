@@ -87,6 +87,7 @@ python examples/03_modeling_and_backtest.py     # forecasting + backtest
 python examples/04_multi_ticker_screener.py     # rank a list of tickers
 python examples/05_volatility_and_regimes.py    # diagnostics, GARCH, regimes, vol targeting
 python examples/06_research_report.py           # full pipeline -> one report, with caveats
+python examples/07_real_data_case_study.py      # same pipeline, real 1987 AAPL data incl. Black Monday
 ```
 
 All of them run offline against synthetic data by default. Pass `--live
@@ -99,7 +100,7 @@ data - needs the `live` extra, network access, and `05`/`06` also need the
 ```
 src/stockanalysis/
 ├── config.py       # default settings, incl. random seed
-├── data/           # pluggable data sources
+├── data/           # pluggable data sources + quality checks
 ├── indicators/     # technical + volume indicators
 ├── stats/          # returns, performance metrics, diagnostics
 ├── portfolio.py    # cross-ticker correlation / beta / relative strength
@@ -107,7 +108,7 @@ src/stockanalysis/
 ├── regime/         # volatility regime classification + Markov switching
 ├── models/         # forecasting + walk-forward validation
 ├── backtest/       # backtesting engine + position sizing
-├── evaluation/     # bootstrap CI + permutation significance testing
+├── evaluation/     # bootstrap CI, permutation testing, model comparison
 └── viz/            # plotting functions
 
 tests/        # pytest suite, offline
@@ -154,6 +155,24 @@ that's what `YFinanceSource` uses now. It sits behind the same `DataSource`
 interface as everything else, so if it ever meets the same fate, only one
 file needs to change.
 
+## Real data, not just synthetic
+
+Most of the test suite runs against `SyntheticSource` because it's fast,
+offline, and deterministic - but it's i.i.d. by construction, so it never
+shows fat tails, real autocorrelation, or an actual crash.
+`examples/data/AAPL_1987.csv` bundles real, unmodified daily AAPL data for
+1987 (Black Monday included), and `07_real_data_case_study.py` plus
+`tests/test_real_data_integration.py` run the full pipeline against it.
+The diagnostics genuinely behave differently there - normality and
+no-autocorrelation both get rejected, which never happens on synthetic
+data. See `examples/data/README.md` for where it came from.
+
+`YFinanceSource`/`CachedYFinanceSource` are real, working code, but I
+haven't been able to exercise a live fetch from every environment I've
+run this in - some sandboxes block outbound requests to Yahoo Finance
+specifically while still allowing PyPI/GitHub. If `--live` fails with a
+network/host error rather than a data error, that's what's happening.
+
 ## How this was built
 
 Built in four rough passes rather than one shot:
@@ -166,7 +185,9 @@ Built in four rough passes rather than one shot:
 3. Stationarity/autocorrelation/normality tests, GARCH volatility
    forecasting, rolling volatility regimes, volatility-targeted position
    sizing, gradient boosting + ARIMA models.
-4. Markov regime-switching, bootstrap/permutation significance testing.
+4. Markov regime-switching, bootstrap/permutation significance testing,
+   a paired test for comparing two forecasting models properly, data
+   quality checks, and the real-1987-data case study.
 
 ## License
 
